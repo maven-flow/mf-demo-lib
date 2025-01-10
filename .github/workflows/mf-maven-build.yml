@@ -1,0 +1,58 @@
+name: MF Maven Build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      packages: write
+    steps:
+
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Cache local Maven repository
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Prevent Maven Artifact Overwrites
+      uses: maven-flow/prevent-artifact-overwrites@v1
+      with:
+        enforce-branch-version: true
+        push-changes: true
+
+    - name: Build with Maven
+      run: mvn -B deploy -DMAVEN_PKG_REPO_URL=${{ vars.MAVEN_PKG_REPO_URL }}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Merge to Open Pull Request Branches
+      run: |
+        branches=`gh pr list --state open --base ${{ github.ref_name }} --json headRefName --jq '[.[] | .headRefName]'`
+        echo "Open pull request branches: ${branches}"
+        echo "$branches" | jq -r '.[]' | while read -r branch; do
+          gh workflow run mf-merge-from-develop.yml --ref $branch
+        done
+      env:
+        GH_TOKEN: ${{ github.token }}
+
+    - name: Merge Release to Develop
+      if: startsWith(github.ref_name, 'release/')
+      run: gh workflow run mf-merge-from-release.yml --ref develop -f release-branch=origin/${{ github.ref_name }}
+      env:
+        GH_TOKEN: ${{ github.token }}

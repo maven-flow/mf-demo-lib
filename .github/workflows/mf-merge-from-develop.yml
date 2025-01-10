@@ -1,0 +1,44 @@
+name: MF Merge from Develop
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+  workflow_dispatch:
+
+
+jobs:
+
+  merge-from-develop:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write                   # write permission needed to enable GIT push after merge
+    steps:
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0                  # the full GIT history needs to be checked out
+
+    - name: Determine Current Branch
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          branch=${{ github.head_ref }}
+        else
+          branch=${{ github.ref_name }}
+        fi
+        echo "Current branch: $branch"
+        echo "CURRENT_BRANCH=$branch" >> $GITHUB_ENV
+
+    - name: Merge from Develop to PR
+      uses: maven-flow/merge@v1
+      with:
+        changelog-rebase: true
+        source-branch: origin/develop
+        target-branch: ${{ env.CURRENT_BRANCH }}
+
+    # ensure build is not broken after the merge
+    - name: Run Build
+      run: gh workflow run mf-maven-build.yml --ref ${{ env.CURRENT_BRANCH }}
+      env:
+        GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,38 @@
+# This workflow does not use Maven Flow and is only here to demonstrate the problems which are solved
+# by Maven Flow. Do not copy this workflow to your production code.
+
+name: Standard Maven Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Cache local Maven repository
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-std-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-std-
+          ${{ runner.os }}-maven-
+
+    - name: Build with Maven
+      run: mvn -B deploy -DMAVEN_PKG_REPO_URL=${{ vars.MAVEN_PKG_REPO_URL }}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}

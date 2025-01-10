@@ -1,0 +1,33 @@
+name: MF Merge from Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-branch:
+        type: string
+        required: true
+
+jobs:
+
+  merge-from-release:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write                   # write permission needed to enable GIT push after merge
+    steps:
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0                  # the full GIT history needs to be checked out
+
+    - name: Merge from Develop to PR
+      uses: maven-flow/merge@v1
+      with:
+        source-branch: ${{ inputs.release-branch }}
+        target-branch: ${{ github.ref_name }}
+
+    # ensure build is not broken after the merge
+    - name: Run Build
+      run: gh workflow run mf-maven-build.yml --ref ${{ github.ref_name }}
+      env:
+        GH_TOKEN: ${{ github.token }}
