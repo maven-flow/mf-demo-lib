@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0-rc.2] - [SNAPSHOT]
 
+### Fixed
 
+- Typo in apple identification
 
 ## [1.0.0-rc.1] - 2025-01-10
 
