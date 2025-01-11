@@ -3,6 +3,8 @@ name: MF Merge from Develop
 on:
   pull_request:
     types: [opened, reopened]
+    branches:
+      - "feature/*"
 
   workflow_dispatch:
 
