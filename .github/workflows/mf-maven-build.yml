@@ -41,12 +41,15 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
 
-    - name: Merge to Open Pull Request Branches
+    - name: Merge to Open Feature Pull Requests
       run: |
         branches=`gh pr list --state open --base ${{ github.ref_name }} --json headRefName --jq '[.[] | .headRefName]'`
         echo "Open pull request branches: ${branches}"
         echo "$branches" | jq -r '.[]' | while read -r branch; do
-          gh workflow run mf-merge-from-develop.yml --ref $branch
+          if [[ "$branch" == feature/* ]]; then
+            echo "Executing merge from develop to $branch"
+            gh workflow run mf-merge-from-develop.yml --ref "$branch"
+          fi
         done
       env:
         GH_TOKEN: ${{ github.token }}
